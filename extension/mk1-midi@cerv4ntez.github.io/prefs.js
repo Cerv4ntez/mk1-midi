@@ -58,6 +58,15 @@ export default class Mk1MidiPreferences extends ExtensionPreferences {
         window.search_enabled = true;
         this._window = window;
         this._pages = [];
+        window.connect('close-request', () => {
+            // flush an edit still waiting for its debounce
+            if (this._saveId) {
+                GLib.source_remove(this._saveId);
+                this._saveId = 0;
+                this._save();
+            }
+            return false;
+        });
 
         try {
             this._proxy = await new Promise((resolve, reject) => {
@@ -106,10 +115,14 @@ export default class Mk1MidiPreferences extends ExtensionPreferences {
             GLib.source_remove(this._saveId);
         this._saveId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 300, () => {
             this._saveId = 0;
-            this._proxy.SetConfigAsync(JSON.stringify(this._cfg)).catch(e =>
-                this._window.add_toast(new Adw.Toast({title: `Could not save: ${e.message}`})));
+            this._save();
             return GLib.SOURCE_REMOVE;
         });
+    }
+
+    _save() {
+        this._proxy.SetConfigAsync(JSON.stringify(this._cfg)).catch(e =>
+            this._window.add_toast(new Adw.Toast({title: `Could not save: ${e.message}`})));
     }
 
     async _resetDefaults() {
