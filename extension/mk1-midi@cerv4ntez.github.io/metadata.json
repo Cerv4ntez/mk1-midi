@@ -1,0 +1,8 @@
+{
+  "uuid": "mk1-midi@cerv4ntez.github.io",
+  "name": "MK1 MIDI Mode (unofficial)",
+  "description": "Unofficial MIDI mode for the Native Instruments Maschine MK1 controller: switch modes from the top bar or Quick Settings, see the pads, pick groups and edit the mapping. Needs the mk1-midi daemon from the project page. Not affiliated with or endorsed by Native Instruments.",
+  "shell-version": ["50", "51", "52"],
+  "version-name": "0.3.0",
+  "url": "https://github.com/Cerv4ntez/mk1-midi"
+}

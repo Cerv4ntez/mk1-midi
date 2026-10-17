@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Cerv4ntez
+# Native Instruments Maschine MK1 (17cc:0808).
+#
+# mk1-midi drives the MK1 directly over USB (pyusb), so the logged-in
+# user needs write access to its USB device node.
+ACTION=="add|change", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="17cc", ATTR{idProduct}=="0808", TAG+="uaccess"
+
+# While the daemon is not running, snd-usb-caiaq owns the device and reports
+# its buttons as BTN_MISC+n, which overlaps the mouse button range (Note
+# Repeat = BTN_LEFT, Group A = BTN_RIGHT, ...), so udev tags it as a mouse and
+# libinput turns button presses into clicks. Hide it from libinput.
+ACTION=="add|change", SUBSYSTEM=="input", KERNEL=="event*", ATTRS{idVendor}=="17cc", ATTRS{idProduct}=="0808", ENV{ID_INPUT_MOUSE}="", ENV{ID_INPUT_JOYSTICK}="", ENV{LIBINPUT_IGNORE_DEVICE}="1"
