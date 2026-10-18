@@ -117,7 +117,7 @@ pad hit or knob turn (plus half a second of turning) sends no MIDI.
 | Groups A–H | Select MIDI channel 1–8 (or send CC 52–59) |
 | Knobs 1–8 | CC 14–21, absolute 0–127 (endless knobs, 1 turn = full range) |
 | Volume / Tempo / Swing | CC 7 / 22 / 23 |
-| Mute, Solo, Select, Duplicate, Navigate, Pad Mode, Pattern, Scene | CC 24–31 |
+| Mute, Solo, Select, Duplicate, Navigate, Keyboard (Pad Mode), Pattern, Scene | CC 24–31 |
 | Softkeys 1–8 | CC 102–109 |
 | Restart, Step ◀, Step ▶, Grid, Play, Rec, Erase, Shift | CC 110–117 |
 | Control, Step, Browse, Sampling, Nav ◀, Nav ▶ | CC 85–90 |

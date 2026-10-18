@@ -31,7 +31,7 @@ const BUTTON_SECTIONS = [
     ]],
     ['Left Column', [
         ['mute', 'Mute'], ['solo', 'Solo'], ['select', 'Select'],
-        ['duplicate', 'Duplicate'], ['navigate', 'Navigate'], ['pad_mode', 'Pad Mode'],
+        ['duplicate', 'Duplicate'], ['navigate', 'Navigate'], ['pad_mode', 'Keyboard (Pad Mode)'],
         ['pattern', 'Pattern'], ['scene', 'Scene'], ['note_repeat', 'Note Repeat'],
     ]],
     ['Screen Area', [

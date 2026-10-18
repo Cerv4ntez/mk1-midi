@@ -945,8 +945,12 @@ def note_name(n):
     return f'{NOTE_NAMES[n % 12]}{n // 12 - 2}'
 
 
+# names printed on the unit where they differ from the protocol's
+PRINTED_NAMES = {'pad_mode': 'Keyboard'}
+
+
 def pretty(name):
-    return name.replace('_', ' ').title()
+    return PRINTED_NAMES.get(name) or name.replace('_', ' ').title()
 
 
 if __name__ == '__main__':
