@@ -44,7 +44,7 @@ to the kernel driver when it stops.
 
 ## Requirements
 
-* Linux with GNOME Shell 50–52 (the daemon also works without GNOME; the
+* Linux with GNOME Shell 51 (the daemon also works without GNOME; the
   extension is the only UI)
 * Python 3.10+ with pyusb, python-rtmidi, Pillow and PyGObject:
 

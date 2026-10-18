@@ -138,7 +138,12 @@ def merge_config(override):
     cfg = deep_merge(DEFAULT_CONFIG, override)
     contrast = cfg['display']['contrast']
     if not isinstance(contrast, list):      # older configs had one value for both
-        cfg['display']['contrast'] = [contrast] * 2
+        contrast = [contrast]
+    if not contrast:
+        contrast = [mk1usb.DEFAULT_CONTRAST]
+    # exactly [left, right]: a hand-edited one-element list would otherwise
+    # crash the display thread on the right screen
+    cfg['display']['contrast'] = (contrast * 2)[:2]
     return cfg
 
 
@@ -326,6 +331,7 @@ class Daemon:
                             on_pads=self._usb_pads, on_midi=self._usb_midi,
                             on_lost=self._usb_lost)
         dev.contrast = [clamp(int(c), 0, 511) for c in self.cfg['display']['contrast']]
+        self.pad_raw = [0] * 16
         try:
             dev.open()
         except (OSError, usb.core.USBError) as e:
@@ -334,7 +340,6 @@ class Daemon:
         self.dev = dev
         self.connected = True
         self.buttons = 0
-        self.pad_raw = [0] * 16
         self.knob_anchor.clear()
         self.knob_motion.clear()
         self.sent_frames = [None, None]
@@ -432,7 +437,14 @@ class Daemon:
             self.held.add(name)
             hotkey = self.cfg['hotkey']
             if name in hotkey and all(b in self.held for b in hotkey):
-                # the hotkey's buttons never leak MIDI for this press
+                # The buttons held before this one already sent their 127 if
+                # MIDI mode was on; release them before swallowing the hotkey.
+                if self.midi_mode:
+                    for b in hotkey:
+                        cc = self.cfg['buttons']['cc'].get(b)
+                        if b != name and b not in self.swallowed and cc is not None \
+                                and b not in self.cfg['buttons']['toggle']:
+                            self._send([0xB0 | self.channel, cc, 0])
                 self.swallowed.update(hotkey)
                 self.set_midi_mode(not self.midi_mode)
                 return
@@ -643,13 +655,17 @@ class Daemon:
         return GLib.SOURCE_REMOVE
 
     def _on_din_out(self, event, data=None):
+        # rtmidi's thread: hand over to the main loop, which owns self.dev
         msg, _ = event
-        dev = self.dev
-        if dev and self.connected:
+        GLib.idle_add(self._handle_din_out, bytes(msg))
+
+    def _handle_din_out(self, data):
+        if self.dev and self.connected:
             try:
-                dev.midi_write(bytes(msg))
-            except usb.core.USBError as e:
+                self.dev.midi_write(data)
+            except (usb.core.USBError, AttributeError) as e:     # device just went away
                 log(f'DIN out failed: {e}')
+        return GLib.SOURCE_REMOVE
 
     def _release_all(self):
         """Note-off every sounding pad and release held momentary buttons."""
@@ -757,8 +773,8 @@ class Daemon:
         for n in self.pads:
             self._refresh_pad_led(n)
         for name in mk1usb.LED_POS:
-            if name.startswith('pad_') or name == 'backlight':
-                continue
+            if name == 'backlight' or (name.startswith('pad_') and name[4:].isdigit()):
+                continue                # pads: _refresh_pad_led
             level = 0
             if on:
                 if name in GROUPS and self.cfg['group_mode'] == 'channel':
