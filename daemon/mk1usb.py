@@ -147,8 +147,8 @@ class Mk1Usb:
         self._disp_cond = threading.Condition()
         self._disp_pending = [None, None]
         self._disp_ready = [False, False]
-        self.contrast = DEFAULT_CONTRAST
-        self._contrast_pending = False
+        self.contrast = [DEFAULT_CONTRAST, DEFAULT_CONTRAST]
+        self._contrast_pending = [False, False]
 
     @staticmethod
     def present():
@@ -255,30 +255,30 @@ class Mk1Usb:
             self._disp_pending[display] = frame
             self._disp_cond.notify()
 
-    def set_contrast(self, value):
-        """Panel electronic volume, 0-511 (both displays)."""
+    def set_contrast(self, display, value):
+        """Panel electronic volume, 0-511, for display 0 (left) or 1 (right)."""
         with self._disp_cond:
-            self.contrast = max(0, min(511, int(value)))
-            self._contrast_pending = True
+            self.contrast[display] = max(0, min(511, int(value)))
+            self._contrast_pending[display] = True
             self._disp_cond.notify()
 
     def _display_worker(self):
         while self.running:
             with self._disp_cond:
-                while self.running and not self._contrast_pending \
+                while self.running and not any(self._contrast_pending) \
                         and not any(f is not None for f in self._disp_pending):
                     self._disp_cond.wait()
                 if not self.running:
                     return
-                contrast = self.contrast if self._contrast_pending else None
-                self._contrast_pending = False
+                contrast = [c if p else None
+                            for c, p in zip(self.contrast, self._contrast_pending)]
+                self._contrast_pending = [False, False]
                 n = 0 if self._disp_pending[0] is not None else 1
                 frame, self._disp_pending[n] = self._disp_pending[n], None
             try:
-                if contrast is not None:
-                    for i in (0, 1):
-                        if self._disp_ready[i]:
-                            self._send_contrast(i, contrast)
+                for i in (0, 1):
+                    if contrast[i] is not None and self._disp_ready[i]:
+                        self._send_contrast(i, contrast[i])
                 if frame is not None:
                     if not self._disp_ready[n]:
                         self._init_display(n)
@@ -299,7 +299,7 @@ class Mk1Usb:
             self.dev.write(EP_DISP, bytes([d, 0x00, len(cmd)]) + cmd, timeout=1000)
             if delay:
                 time.sleep(delay / 1000)
-        self._send_contrast(n, self.contrast)
+        self._send_contrast(n, self.contrast[n])
 
     def _send_frame(self, n, frame):
         d = n << 1

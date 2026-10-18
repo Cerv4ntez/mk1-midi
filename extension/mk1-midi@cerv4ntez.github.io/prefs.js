@@ -150,6 +150,30 @@ export default class Mk1MidiPreferences extends ExtensionPreferences {
         return row;
     }
 
+    /** A slider with a spin button beside it for exact values. */
+    _slider(title, subtitle, get, set, lower, upper, step = 1, mark = null) {
+        const adjustment = new Gtk.Adjustment({
+            lower, upper, step_increment: step, page_increment: step * 16, value: get(),
+        });
+        const row = new Adw.ActionRow({title, subtitle: subtitle ?? ''});
+        const scale = new Gtk.Scale({
+            adjustment,
+            draw_value: false,
+            hexpand: true,
+            valign: Gtk.Align.CENTER,
+            width_request: 200,
+        });
+        if (mark !== null)
+            scale.add_mark(mark, Gtk.PositionType.BOTTOM, null);
+        row.add_suffix(scale);
+        row.add_suffix(new Gtk.SpinButton({adjustment, valign: Gtk.Align.CENTER}));
+        adjustment.connect('value-changed', () => {
+            set(Math.round(adjustment.value));
+            this._changed();
+        });
+        return row;
+    }
+
     _combo(title, subtitle, options, get, set) {
         const row = new Adw.ComboRow({
             title,
@@ -261,14 +285,22 @@ export default class Mk1MidiPreferences extends ExtensionPreferences {
         });
         screens.add(this._switch('Use the Displays', null,
             () => disp.enabled, v => (disp.enabled = v)));
-        screens.add(this._spin('Contrast', 'Panel voltage; changes apply live (default 253)',
-            () => disp.contrast, v => (disp.contrast = v), 0, 511, 1));
         screens.add(this._switch('Date and Time', 'Date on the left, time on the right while ' +
             'MIDI mode is off or idle (otherwise the hotkey hint)',
             () => disp.clock, v => (disp.clock = v)));
         screens.add(this._spin('Clock After', 'Minutes without touching the Maschine in MIDI mode (0 = never)',
             () => disp.idle_minutes, v => (disp.idle_minutes = v), 0, 60));
         page.add(screens);
+
+        const contrast = new Adw.PreferencesGroup({
+            title: 'Contrast',
+            description: 'Panel voltage, 0–511; changes apply live. The mark is the default (253).',
+        });
+        contrast.add(this._slider('Left Screen', null,
+            () => disp.contrast[0], v => (disp.contrast[0] = v), 0, 511, 1, 253));
+        contrast.add(this._slider('Right Screen', null,
+            () => disp.contrast[1], v => (disp.contrast[1] = v), 0, 511, 1, 253));
+        page.add(contrast);
 
         const light = new Adw.PreferencesGroup({title: 'Backlight'});
         light.add(this._spin('In MIDI Mode', '0–63',

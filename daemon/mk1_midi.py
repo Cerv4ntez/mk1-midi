@@ -77,7 +77,7 @@ DEFAULT_CONFIG = {
     'channel': 1,               # MIDI channel when group_mode is 'cc'
     'display': {
         'enabled': True,
-        'contrast': mk1usb.DEFAULT_CONTRAST,    # panel electronic volume 0-511
+        'contrast': [mk1usb.DEFAULT_CONTRAST] * 2,  # left, right: panel electronic volume 0-511
         'backlight': 63,        # 0-63 in MIDI mode
         'idle_backlight': 0,    # 0-63 while MIDI mode is off
         'clock': True,          # date (left) + time (right) when off or idle
@@ -134,9 +134,17 @@ def deep_merge(base, override):
     return out
 
 
+def merge_config(override):
+    cfg = deep_merge(DEFAULT_CONFIG, override)
+    contrast = cfg['display']['contrast']
+    if not isinstance(contrast, list):      # older configs had one value for both
+        cfg['display']['contrast'] = [contrast] * 2
+    return cfg
+
+
 def load_config():
     try:
-        return deep_merge(DEFAULT_CONFIG, json.loads(CONFIG_PATH.read_text()))
+        return merge_config(json.loads(CONFIG_PATH.read_text()))
     except FileNotFoundError:
         return copy.deepcopy(DEFAULT_CONFIG)
     except (OSError, ValueError) as e:
@@ -317,7 +325,7 @@ class Daemon:
         dev = mk1usb.Mk1Usb(on_buttons=self._usb_buttons, on_knobs=self._usb_knobs,
                             on_pads=self._usb_pads, on_midi=self._usb_midi,
                             on_lost=self._usb_lost)
-        dev.contrast = clamp(int(self.cfg['display']['contrast']), 0, 511)
+        dev.contrast = [clamp(int(c), 0, 511) for c in self.cfg['display']['contrast']]
         try:
             dev.open()
         except (OSError, usb.core.USBError) as e:
@@ -694,8 +702,11 @@ class Daemon:
         self.cfg = cfg
         if cfg['port_name'] != old['port_name']:
             log('port name changes apply after a daemon restart')
-        if self.dev and cfg['display']['contrast'] != old['display']['contrast']:
-            self.dev.set_contrast(cfg['display']['contrast'])
+        if self.dev:
+            for n, (new, prev) in enumerate(zip(cfg['display']['contrast'],
+                                                old['display']['contrast'])):
+                if new != prev:
+                    self.dev.set_contrast(n, new)
         self.sent_frames = [None, None]
         self._refresh_leds()
         self._screen_dirty()
@@ -871,7 +882,7 @@ class Daemon:
             elif method == 'GetDefaultConfig':
                 result = GLib.Variant('(s)', (json.dumps(DEFAULT_CONFIG),))
             elif method == 'SetConfig':
-                cfg = deep_merge(DEFAULT_CONFIG, json.loads(args[0]))
+                cfg = merge_config(json.loads(args[0]))
                 save_config(cfg)
                 self.apply_config(cfg)
         except Exception as e:

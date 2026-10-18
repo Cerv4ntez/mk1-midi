@@ -103,7 +103,7 @@ Group A a right click** whenever the daemon isn't running.
 
 The columns line up with the softkeys above and the knobs below each screen.
 Name knobs and softkeys in *Settings → Knobs / Buttons* (otherwise "CC n").
-*Settings → Screens* has contrast, backlight levels, the date/time screens and
+*Settings → Screens* has contrast (per screen), backlight levels, the date/time screens and
 the idle delay. The date follows your `LC_TIME` locale.
 
 The input that wakes the controller from idle only wakes it: that button press,
@@ -136,8 +136,8 @@ pad, and CCs light the matching button.
 * Only one program can drive the MK1 over USB. Stop the daemon
   (`systemctl --user stop mk1-midi`) before using other libusb tools.
 * "no reply to GET_DEVICE_INFO": the controller's firmware is stuck. Re-plug it.
-* Screens lit but empty: raise *Contrast* in Settings → Screens. The displays'
-  usable contrast varies between units; the default (253) was set by eye on one
+* Screens lit but empty: raise that screen's *Contrast* slider in Settings → Screens. The
+  displays' usable contrast varies between units; the default (253) was set by eye on one
   unit.
 * A knob that has been resting must turn about 11° before it counts. This
   filters out pots that drift on their own (one test unit's Swing knob wanders
